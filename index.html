@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QALQAN — Цифровой щит исторической памяти</title>
+    <!-- Leaflet CSS (Карта) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-burgundy: #5c061c;
+            --secondary-burgundy: #800e2e;
+            --accent-pink: #d4a3b1;
+            --light-pink: #fbebee;
+            --bg-pink-light: #fff5f7;
+            --text-dark: #2b040d;
+            --text-muted: #7a4f5a;
+            --white: #ffffff;
+            --shadow: 0 4px 15px rgba(92, 6, 28, 0.12);
+            --transition: all 0.3s ease;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Open Sans', sans-serif; background-color: var(--bg-pink-light); color: var(--text-dark); line-height: 1.6; }
+        h1, h2, h3, h4 { font-family: 'Montserrat', sans-serif; }
+
+        header {
+            background-color: var(--primary-burgundy);
+            color: var(--white);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--white);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo span { color: var(--accent-pink); }
+
+        nav { display: flex; align-items: center; gap: 20px; }
+        nav ul { display: flex; list-style: none; gap: 20px; }
+        nav a { color: var(--white); text-decoration: none; font-weight: 600; font-size: 0.95rem; transition: var(--transition); }
+        nav a:hover { color: var(--accent-pink); }
+
+        .lang-switcher {
+            background: var(--secondary-burgundy);
+            border: 1px solid var(--accent-pink);
+            color: var(--white);
+            padding: 5px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: var(--transition);
+        }
+        .lang-switcher:hover { background: var(--accent-pink); color: var(--primary-burgundy); }
+
+        .hero {
+            background: linear-gradient(135deg, var(--primary-burgundy), var(--secondary-burgundy));
+            color: var(--white);
+            padding: 5rem 1rem;
+            text-align: center;
+            border-bottom: 4px solid var(--accent-pink);
+        }
+        .hero-content { max-width: 800px; margin: 0 auto; }
+        .hero h1 { font-size: 2.5rem; margin-bottom: 1rem; font-weight: 800; }
+        .hero p { font-size: 1.2rem; margin-bottom: 2rem; font-style: italic; color: var(--light-pink); }
+
+        .btn {
+            display: inline-block;
+            background-color: var(--accent-pink);
+            color: var(--primary-burgundy);
+            padding: 0.8rem 1.8rem;
+            border-radius: 30px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+        }
+        .btn:hover { background-color: #e5b8c5; transform: translateY(-2px); }
+
+        .container { max-width: 1200px; margin: 3rem auto; padding: 0 1rem; }
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            color: var(--primary-burgundy);
+            margin-bottom: 2rem;
+            position: relative;
+        }
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background-color: var(--accent-pink);
+            margin: 10px auto 0;
+            border-radius: 2px;
+        }
+
+        /* ИИ Консультант */
+        .ai-section {
+            background: var(--white);
+            border: 2px solid var(--accent-pink);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--shadow);
+            margin-bottom: 3rem;
+        }
+        .ai-header { display: flex; align-items: center; gap: 15px; margin-bottom: 1.5rem; }
+        .ai-avatar {
+            width: 50px; height: 50px; background: var(--secondary-burgundy); color: var(--white);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem;
+        }
+        .ai-chat-box { background: var(--light-pink); border-radius: 12px; padding: 1.5rem; max-height: 280px; overflow-y: auto; margin-bottom: 1rem; }
+        .chat-message { margin-bottom: 1rem; display: flex; flex-direction: column; }
+        .chat-message.ai { align-items: flex-start; }
+        .chat-message.user { align-items: flex-end; }
+        .chat-bubble { padding: 0.8rem 1.2rem; border-radius: 15px; max-width: 85%; font-size: 0.95rem; }
+        .chat-message.ai .chat-bubble { background: var(--white); color: var(--text-dark); border: 1px solid var(--accent-pink); }
+        .chat-message.user .chat-bubble { background: var(--secondary-burgundy); color: var(--white); }
+        .ai-quick-btn { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
+        .chip-btn {
+            background: var(--white); border: 1px solid var(--secondary-burgundy); color: var(--secondary-burgundy);
+            padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: var(--transition);
+        }
+        .chip-btn:hover { background: var(--secondary-burgundy); color: var(--white); }
+        .ai-input-group { display: flex; gap: 10px; }
+        .ai-input-group input { flex: 1; padding: 0.8rem 1.2rem; border: 1px solid var(--accent-pink); border-radius: 25px; outline: none; }
+
+        /* Карта */
+        #map-section { background: var(--white); padding: 1.5rem; border-radius: 16px; box-shadow: var(--shadow); margin-bottom: 3rem; }
+        #map { height: 480px; width: 100%; border-radius: 12px; }
+
+        /* Карточки памятников */
+        .objects-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; }
+        .card {
+            background: var(--white); border-radius: 16px; padding: 1.5rem; box-shadow: var(--shadow);
+            display: flex; flex-direction: column; border: 1px solid rgba(212, 163, 177, 0.4); transition: var(--transition);
+            border-top: 5px solid var(--primary-burgundy);
+        }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(92, 6, 28, 0.2); }
+        .card-title { font-size: 1.25rem; color: var(--primary-burgundy); margin-bottom: 0.4rem; }
+        .card-date { font-size: 0.85rem; color: var(--secondary-burgundy); font-weight: 700; margin-bottom: 0.8rem; }
+        .card-text { font-size: 0.95rem; color: var(--text-dark); margin-bottom: 1.5rem; flex-grow: 1; }
+
+        /* Ссылки на источники */
+        .source-link {
+            color: var(--secondary-burgundy);
+            font-weight: 600;
+            text-decoration: underline;
+            transition: var(--transition);
+        }
+        .source-link:hover {
+            color: var(--primary-burgundy);
+        }
+
+        /* Хронология */
+        .timeline { position: relative; max-width: 800px; margin: 0 auto; padding: 2rem 0; }
+        .timeline::after { content: ''; position: absolute; width: 4px; background-color: var(--secondary-burgundy); top: 0; bottom: 0; left: 50%; margin-left: -2px; }
+        .timeline-item { padding: 10px 40px; position: relative; width: 50%; }
+        .timeline-item::after { content: ''; position: absolute; width: 16px; height: 16px; right: -8px; background-color: var(--white); border: 4px solid var(--secondary-burgundy); top: 15px; border-radius: 50%; z-index: 1; }
+        .left { left: 0; }
+        .right { left: 50%; }
+        .right::after { left: -8px; }
+        .content { padding: 1.5rem; background-color: var(--white); border-radius: 12px; box-shadow: var(--shadow); border-left: 4px solid var(--secondary-burgundy); }
+
+        /* Модальное окно */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(43, 4, 13, 0.7); }
+        .modal-content { background-color: var(--white); margin: 5% auto; padding: 2rem; border-radius: 16px; max-width: 700px; width: 90%; position: relative; }
+        .close-btn { position: absolute; right: 20px; top: 15px; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); }
+
+        footer { background-color: var(--primary-burgundy); color: var(--white); text-align: center; padding: 2rem 1rem; margin-top: 4rem; }
+
+        @media (max-width: 768px) {
+            .nav-container { flex-direction: column; gap: 10px; }
+            .timeline::after { left: 31px; }
+            .timeline-item { width: 100%; padding-left: 70px; padding-right: 25px; }
+            .timeline-item::after { left: 23px; }
+            .right { left: 0%; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Навигация -->
+<header>
+    <div class="nav-container">
+        <a href="#" class="logo">QALQAN <span>.KZ</span></a>
+        <nav>
+            <ul>
+                <li><a href="#ai-guide" data-i18n="navAi">ИИ-Гид</a></li>
+                <li><a href="#map-section" data-i18n="navMap">Карта</a></li>
+                <li><a href="#objects" data-i18n="navArchive">Архив</a></li>
+                <li><a href="#timeline" data-i18n="navTimeline">Хронология</a></li>
+            </ul>
+            <button class="lang-switcher" onclick="toggleLanguage()">KK / RU</button>
+        </nav>
+    </div>
+</header>
+
+<!-- Баннер -->
+<section class="hero">
+    <div class="hero-content">
+        <h1 data-i18n="heroTitle">QALQAN — Цифровой щит исторической памяти</h1>
+        <p data-i18n="heroSubtitle">«Здания исчезают. История должна оставаться»</p>
+        <a href="#ai-guide" class="btn" data-i18n="heroBtn">Задать вопрос ИИ-Гиду</a>
+    </div>
+</section>
+
+<main class="container">
+
+    <!-- ИИ-Гид -->
+    <section id="ai-guide" class="ai-section">
+        <div class="ai-header">
+            <div class="ai-avatar">AI</div>
+            <div>
+                <h3 style="color: var(--primary-burgundy);" data-i18n="aiTitle">ИИ-Консультант QALQAN</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted);" data-i18n="aiSubtitle">Спросите про любой памятник или про историю проекта.</p>
+            </div>
+        </div>
+
+        <div class="ai-chat-box" id="chatBox">
+            <div class="chat-message ai">
+                <div class="chat-bubble" data-i18n="aiWelcome">
+                    Сәлеметсіз бе! Я ваш цифровой гид. Выберите тему ниже или задайте свой вопрос!
+                </div>
+            </div>
+        </div>
+
+        <div class="ai-quick-btn">
+            <button class="chip-btn" onclick="askAI('кубрин')">🏛 Усадьба Кубрина</button>
+            <button class="chip-btn" onclick="askAI('собор')">⛪ Собор</button>
+            <button class="chip-btn" onclick="askAI('мечеть')">🕌 Мечеть</button>
+            <button class="chip-btn" onclick="askAI('кощегулов')">🍬 Дом Кощегулова</button>
+            <button class="chip-btn" onclick="askAI('создание')">💡 О проекте QALQAN</button>
+        </div>
+
+        <div class="ai-input-group">
+            <input type="text" id="userInput" data-i18n-placeholder="aiPlaceholder" placeholder="Напишите вопрос о памятниках..." onkeypress="handleKeyPress(event)">
+            <button class="btn" onclick="sendUserMessage()" data-i18n="sendBtn">Отправить</button>
+        </div>
+    </section>
+
+    <!-- Карта -->
+    <section id="map-section">
+        <h2 class="section-title" data-i18n="mapTitle">Интерактивная карта исторического Акмолинска</h2>
+        <p style="text-align: center; color: var(--text-muted); margin-bottom: 1rem;" data-i18n="mapDesc">
+            Нажмите на маркер, чтобы изучить историю мест и перейти к источникам.
+        </p>
+        <div id="map"></div>
+    </section>
+
+    <!-- Карточки объектов -->
+    <section id="objects">
+        <h2 class="section-title" data-i18n="archiveTitle">Цифровой архив исторических мест</h2>
+        <div class="objects-grid" id="cards-container"></div>
+    </section>
+
+    <!-- Хронология -->
+    <section id="timeline" style="margin-top: 4rem;">
+        <h2 class="section-title" data-i18n="timelineTitle">Хронология Акмолинска — Астаны</h2>
+        <div class="timeline">
+            <div class="timeline-item left">
+                <div class="content">
+                    <h4 style="color: var(--primary-burgundy);">1830 г.</h4>
+                    <p data-i18n="time0">Основание Акмолинского укрепления на берегу реки Есиль.</p>
+                </div>
+            </div>
+            <div class="timeline-item right">
+                <div class="content">
+                    <h4 style="color: var(--primary-burgundy);">1891–1895 гг.</h4>
+                    <p data-i18n="time1">Строительство Александро-Невского собора и Зелёной мечети.</p>
+                </div>
+            </div>
+            <div class="timeline-item left">
+                <div class="content">
+                    <h4 style="color: var(--primary-burgundy);">1910–1912 гг.</h4>
+                    <p data-i18n="time2">Расцвет купеческой архитектуры (Усадьба В. Кубрина, дома Кощегуловых).</p>
+                </div>
+            </div>
+            <div class="timeline-item right">
+                <div class="content">
+                    <h4 style="color: var(--primary-burgundy);">Сегодня</h4>
+                    <p data-i18n="time3">Создание цифровой платформы QALQAN для сохранения памяти о наследии.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Модальное окно -->
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h2 id="modal-title" style="color: var(--primary-burgundy); margin-bottom: 0.5rem;"></h2>
+        <p id="modal-date" style="color: var(--secondary-burgundy); font-weight: bold; margin-bottom: 1rem;"></p>
+        <p id="modal-desc" style="margin-bottom: 1.5rem; line-height: 1.7;"></p>
+        <div style="background: var(--light-pink); padding: 1rem; border-radius: 8px; font-size: 0.9rem;">
+            <strong data-i18n="sourcesText">Проверенный источник:</strong><br>
+            <span id="modal-source-container"></span>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <p data-i18n="footerText">© 2026 QALQAN — Цифровое сохранение памяти об утраченном наследии Астаны</p>
+    <p style="margin-top: 5px; font-size: 0.8rem; color: var(--accent-pink);" data-i18n="footerNom">Номинация: «Умный край: решение для будущего»</p>
+</footer>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    const translations = {
+        ru: {
+            navAi: "ИИ-Гид", navMap: "Карта", navArchive: "Архив", navTimeline: "Хронология",
+            heroTitle: "QALQAN — Цифровой щит исторической памяти",
+            heroSubtitle: "«Здания исчезают. История должна оставаться»",
+            heroBtn: "Задать вопрос ИИ-Гиду",
+            aiTitle: "ИИ-Консультант QALQAN",
+            aiSubtitle: "Спросите про любой памятник или про историю проекта.",
+            aiWelcome: "Сәлеметсіз бе! Я ваш цифровой гид. Выберите тему ниже или задайте свой вопрос!",
+            aiPlaceholder: "Напишите вопрос о памятниках...", sendBtn: "Отправить",
+            mapTitle: "Интерактивная карта исторического Акмолинска",
+            mapDesc: "Нажмите на маркер, чтобы изучить историю мест и перейти к источникам.",
+            archiveTitle: "Цифровой архив исторических мест",
+            timelineTitle: "Хронология Акмолинска — Астаны",
+            time0: "Основание Акмолинского укрепления на берегу реки Есиль.",
+            time1: "Строительство Александро-Невского собора и Зелёной мечети.",
+            time2: "Расцвет купеческой архитектуры (Усадьба В. Кубрина, дома Кощегуловых).",
+            time3: "Создание цифровой платформы QALQAN для сохранения памяти о наследии.",
+            sourcesText: "Проверенный источник:",
+            footerText: "© 2026 QALQAN — Цифровое сохранение памяти об утраченном наследии Астаны",
+            footerNom: "Номинация: «Умный край: решение для будущего»",
+            detailsBtn: "Читать историю"
+        },
+        kz: {
+            navAi: "AI-Гид", navMap: "Карта", navArchive: "Мұрағат", navTimeline: "Хронология",
+            heroTitle: "QALQAN — Тарихи жадты сақтау цифрлық қалқаны",
+            heroSubtitle: "«Ғимараттар жоғалады. Тарих сақталуы тиіс»",
+            heroBtn: "AI-Гидтен сұрау",
+            aiTitle: "QALQAN AI Кеңесшісі",
+            aiSubtitle: "Ескерткіштер немесе жоба тарихы туралы сұраңыз.",
+            aiWelcome: "Сәлеметсіз бе! Мен сіздің цифрлық тарихи гидіңізбін. Төмендегі нысанды таңдаңыз немесе сұрағыңызды жазыңыз!",
+            aiPlaceholder: "Сұрағыңызды жазыңыз...", sendBtn: "Жіберу",
+            mapTitle: "Тарихи Ақмоланың интерактивті картасы",
+            mapDesc: "Сақталған және жоғалған орындарды зерттеу үшін белгіні басыңыз.",
+            archiveTitle: "Тарихи орындардың цифрлық мұрағаты",
+            timelineTitle: "Ақмола — Астана хронологиясы",
+            time0: "Есіл өзенінің жағасында Ақмола бекінісінің негізін қалау.",
+            time1: "Александр-Невский соборы мен Жасыл мешіттің құрылысы.",
+            time2: "Көпестік сәулеттің гүлденуі (В. Кубрин үйі, Қосшығұлов үйлері).",
+            time3: "Тарихи мұраны сақтау үшін QALQAN цифрлық платформасын құру.",
+            sourcesText: "Тексерілген дереккөз:",
+            footerText: "© 2026 QALQAN — Астананың тарихи мұрасын цифрлық сақтау",
+            footerNom: "Номинация: «Ақылды өлке: болашақ шешімі»",
+            detailsBtn: "Тарихын оқу"
+        }
+    };
+
+    let currentLang = 'ru';
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'ru' ? 'kz' : 'ru';
+        updateContent();
+        renderCards();
+    }
+
+    function updateContent() {
+        const t = translations[currentLang];
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (t[key]) el.innerText = t[key];
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (t[key]) el.placeholder = t[key];
+        });
+    }
+
+    // База объектов с официальными рабочими ссылками
+    const historicalObjects = [
+        {
+            id: 1,
+            title: { ru: "Дом купца Василия Кубрина", kz: "Василий Кубриннің үйі" },
+            date: "1910–1912 гг.",
+            status: { ru: "Сохранился", kz: "Сақталған" },
+            lat: 51.1642, lng: 71.4185,
+            shortDesc: { ru: "Один из самых ярких памятников купеческого модерна старого Акмолинска.", kz: "Ескі Ақмоланың көпестік модерн стиліндегі ең көрнекті ескерткіштерінің бірі." },
+            fullDesc: {
+                ru: "Усадьба купца Василия Кубрина построена в 1910–1912 годах. Выполнена в стиле модерн с элементами эклектики. В советское время здесь находились библиотека, музей, а позже — посольство Украины.",
+                kz: "Василий Кубриннің үйі 1910–1912 жылдары салынған. Модерн стилінде тұрғызылған. Кеңес өкіметі кезінде мұнда кітапхана, мұражай, кейін Украина елшілігі орналасты."
+            },
+            sourceName: "Портал «Қазақстан тарихы»",
+            sourceUrl: "https://e-history.kz/ru/news/show/32684"
+        },
+        {
+            id: 2,
+            title: { ru: "Александро-Невский собор", kz: "Александр-Невский соборы" },
+            date: "1891–1893 гг.",
+            status: { ru: "Утрачен", kz: "Жойылған" },
+            lat: 51.1605, lng: 71.4280,
+            shortDesc: { ru: "Главный православный храм старого Акмолинска.", kz: "Ескі Ақмоланың басты православ ғибадатханасы." },
+            fullDesc: {
+                ru: "Собор был возведен в 1891–1893 годах и являлся важной частью архитектурного ансамбля города. В XX веке здание было снесено.",
+                kz: "Собор 1891–1893 жылдары тұрғызылды. XX ғасырда ғимарат сүріп тасталды."
+            },
+            sourceName: "Издание The Astana Times",
+            sourceUrl: "https://astanatimes.com/"
+        },
+        {
+            id: 3,
+            title: { ru: "Зелёная мечеть", kz: "Жасыл мешіт" },
+            date: "1895 г.",
+            status: { ru: "Утрачен", kz: "Жойылған" },
+            lat: 51.1650, lng: 71.4230,
+            shortDesc: { ru: "Деревянная мечеть купца Нурмухамета Забирова.", kz: "Нұрмұхамед Забировтың ағаш мешіті." },
+            fullDesc: {
+                ru: "Построена в 1895 году на средства мецената Нурмухамета Забирова. Была центром духовной жизни мусульманской общины Акмолинска.",
+                kz: "1895 жылы меценат Нұрмұхамед Забировтың қаражатымен салынған. Ақмола мұсылмандарының рухани орталығы болды."
+            },
+            sourceName: "Архивные материалы портала «Қазақстан тарихы»",
+            sourceUrl: "https://e-history.kz/"
+        },
+        {
+            id: 4,
+            title: { ru: "Купеческий дом Кощегулова", kz: "Қосшығұловтың көпес үйі" },
+            date: "Начало XX века",
+            status: { ru: "Сохранился", kz: "Сақталған" },
+            lat: 51.1628, lng: 71.4210,
+            shortDesc: { ru: "Дом известного купца и мецената Баймухамета Кощегулова.", kz: "Белгілі көпес әрі меценат Баймұхамед Қосшығұловтың үйі." },
+            fullDesc: {
+                ru: "Баймухамет Кощегулов владел известной прянично-кондитерской фабрикой. Его дом — важный образец деревянно-кирпичного зодчества старого города.",
+                kz: "Баймұхамед Қосшығұлов кондитерлік фабриканың иесі болды. Оның үйі қаланың тарихи сәулет үлгісі болып табылады."
+            },
+            sourceName: "История Астаны — e-history.kz",
+            sourceUrl: "https://e-history.kz/ru/news/show/33420"
+        },
+        {
+            id: 5,
+            title: { ru: "Мусульманская школа (Медресе)", kz: "Мұсылман мектебі (Медресе)" },
+            date: "1905–1907 гг.",
+            status: { ru: "Сохранился", kz: "Сақталған" },
+            lat: 51.1661, lng: 71.4265,
+            shortDesc: { ru: "Одно из первых кирпичных учебных заведений города.", kz: "Қаланың алғашқы кірпіштен салынған оқу орындарының бірі." },
+            fullDesc: {
+                ru: "Здание медресе из красного кирпича было построено в начале XX века для начального образования детей мусульманской общины.",
+                kz: "Қызыл кірпіштен салынған медресе ғимараты XX ғасырдың басында мұсылман балаларына бастауыш білім беру үшін тұрғызылған."
+            },
+            sourceName: "Государственный архив города Астаны",
+            sourceUrl: "https://astana.gov.kz/"
+        }
+    ];
+
+    // Инициализация карты Leaflet
+    const map = L.map('map').setView([51.1630, 71.4230], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        attribution: '© OpenStreetMap contributors | QALQAN'
+    }).addTo(map);
+
+    let markers = [];
+
+    function renderCards() {
+        const cardsContainer = document.getElementById('cards-container');
+        cardsContainer.innerHTML = '';
+
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        historicalObjects.forEach(obj => {
+            // Добавление марка на карту
+            const marker = L.marker([obj.lat, obj.lng]).addTo(map).bindPopup(`
+          <div style="text-align: center;">
+            <h3 style="color: #5c061c; margin-bottom: 5px;">${obj.title[currentLang]}</h3>
+            <p style="font-size: 0.8rem; color: #800e2e;"><b>${obj.date} (${obj.status[currentLang]})</b></p>
+            <button onclick="openModal(${obj.id})" style="margin-top: 8px; padding: 5px 12px; background: #5c061c; color: white; border: none; border-radius: 15px; cursor: pointer;">${translations[currentLang].detailsBtn}</button>
+          </div>
+        `);
+            markers.push(marker);
+
+            // Карточка без картинки
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+          <h3 class="card-title">${obj.title[currentLang]}</h3>
+          <div class="card-date">${obj.date} • <span style="color: var(--primary-burgundy);">${obj.status[currentLang]}</span></div>
+          <p class="card-text">${obj.shortDesc[currentLang]}</p>
+          <div style="margin-bottom: 1rem;">
+            <a href="${obj.sourceUrl}" target="_blank" class="source-link">🔗 ${obj.sourceName}</a>
+          </div>
+          <button class="btn" onclick="openModal(${obj.id})">${translations[currentLang].detailsBtn}</button>
+        `;
+            cardsContainer.appendChild(card);
+        });
+    }
+
+    renderCards();
+
+    // ИИ-консультант
+    function askAI(key) {
+        const responses = {
+            'кубрин': {
+                ru: "🏛 **Усадьба купца Кубрина** (1910–1912 гг.) — шедевр акмолинского модерна! Вы можете изучить первоисточник на <a href='https://e-history.kz/ru/news/show/32684' target='_blank' class='source-link'>e-history.kz</a>.",
+                kz: "🏛 **Василий Кубриннің үйі** (1910–1912 жж.) — Ақмола сәулетінің шедеврі! Дереккөзді <a href='https://e-history.kz/ru/news/show/32684' target='_blank' class='source-link'>e-history.kz</a> сайтынан оқи аласыз."
+            },
+            'собор': {
+                ru: "⛪ **Александро-Невский собор** (1891 г.) был главным православным храмом города, но был утрачен в XX веке.",
+                kz: "⛪ **Александр-Невский соборы** (1891 ж.) қаланың басты православ ғибадатханасы болған, бірақ XX ғасырда жойылды."
+            },
+            'мечеть': {
+                ru: "🕌 **Зелёная мечеть** (1895 г.) — деревянный памятник духовной культуры старого Акмолинска, построенный купцом Забировым.",
+                kz: "🕌 **Жасыл мешіт** (1895 ж.) — Көпес Забиров тұрғызған ескі Ақмоланың рухани мәдениетінің ескерткіші."
+            },
+            'кощегулов': {
+                ru: "🍬 **Дом Кощегулова** принадлежал владельцу кондитерской фабрики Баймухамету Кощегулову и сохранился до наших дней.",
+                kz: "🍬 **Қосшығұловтың үйі** кондитерлік фабриканың иесі Баймұхамед Қосшығұловқа тиесілі болған."
+            },
+            'создание': {
+                ru: "💡 **QALQAN** — интерактивный цифровой архив. Наш слоган: *«Здания исчезают. История должна оставаться»*.",
+                kz: "💡 **QALQAN** — интерактивті цифрлық мұрағат. Ұранымыз: *«Ғимараттар жоғалады. Тарих сақталуы тиіс»*."
+            }
+        };
+
+        appendMessage("Расскажи подробнее!", 'user');
+        setTimeout(() => {
+            appendMessage(responses[key][currentLang], 'ai');
+        }, 350);
+    }
+
+    function sendUserMessage() {
+        const input = document.getElementById('userInput');
+        const text = input.value.trim().toLowerCase();
+        if (!text) return;
+
+        appendMessage(input.value, 'user');
+        input.value = '';
+
+        setTimeout(() => {
+            let reply = currentLang === 'ru'
+                ? "Я могу рассказать про Усадьбу Кубрина, Собор, Зелёную мечеть, Дом Кощегулова или о проекте QALQAN!"
+                : "Мен Кубрин үйі, Собор, Жасыл мешіт, Қосшығұлов үйі немесе QALQAN жобасы туралы айта аламын!";
+
+            if (text.includes('кубрин')) reply = "Усадьба Кубрина — памятник модерна. Источник: https://e-history.kz/";
+            if (text.includes('собор')) reply = "Александро-Невский собор (1891–1893 гг.) — снесенный храм.";
+            if (text.includes('мечеть')) reply = "Зелёная мечеть (1895 г.) построена Нурмухаметом Забировым.";
+
+            appendMessage(reply, 'ai');
+        }, 450);
+    }
+
+    function handleKeyPress(e) { if (e.key === 'Enter') sendUserMessage(); }
+
+    function appendMessage(text, sender) {
+        const chatBox = document.getElementById('chatBox');
+        const div = document.createElement('div');
+        div.className = `chat-message ${sender}`;
+        div.innerHTML = `<div class="chat-bubble">${text}</div>`;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // Модальное окно
+    function openModal(id) {
+        const obj = historicalObjects.find(item => item.id === id);
+        if (!obj) return;
+
+        document.getElementById('modal-title').innerText = obj.title[currentLang];
+        document.getElementById('modal-date').innerText = `${obj.date} (${obj.status[currentLang]})`;
+        document.getElementById('modal-desc').innerText = obj.fullDesc[currentLang];
+
+        const sourceContainer = document.getElementById('modal-source-container');
+        sourceContainer.innerHTML = `<a href="${obj.sourceUrl}" target="_blank" class="source-link">🔗 ${obj.sourceName}</a>`;
+
+        document.getElementById('modal').style.display = 'block';
+    }
+
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+    window.onclick = function(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+</script>
+</body>
+</html>
